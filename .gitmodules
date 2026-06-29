@@ -1,0 +1,3 @@
+[submodule "api-schema"]
+	path = api-schema
+	url = git@github.com:22maksim/api-schema-2s.git
