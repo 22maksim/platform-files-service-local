@@ -1,0 +1,91 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.5'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'com.google.protobuf' version '0.9.4'
+}
+
+group = 'ru.localdev'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    // Окружение: установлен JDK 21. Чтобы перейти на Java 25 — поменяй 21 на 25
+    // (потребуется установленный JDK 25 либо Gradle toolchain auto-provisioning).
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+ext {
+    grpcVersion = '1.61.0'
+    protocVersion = '3.25.5'
+    awsSdkVersion = '2.28.16'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring core
+    implementation 'org.springframework.boot:spring-boot-starter'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    runtimeOnly 'org.postgresql:postgresql'
+
+    // gRPC server (net.devh)
+    implementation 'net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE'
+    // reflection -> grpcurl работает без .proto
+    implementation "io.grpc:grpc-services:${grpcVersion}"
+
+    // protobuf / grpc stubs (генерация из api-schema)
+    implementation "io.grpc:grpc-protobuf:${grpcVersion}"
+    implementation "io.grpc:grpc-stub:${grpcVersion}"
+    implementation 'com.google.protobuf:protobuf-java'
+    // @javax.annotation.Generated для сгенерированных grpc-классов (Java 9+)
+    compileOnly 'org.apache.tomcat:annotations-api:6.0.53'
+
+    // S3 / MinIO
+    implementation platform("software.amazon.awssdk:bom:${awsSdkVersion}")
+    implementation 'software.amazon.awssdk:s3'
+
+    // ресайз изображений
+    implementation 'net.coobird:thumbnailator:0.4.20'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protocVersion}"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.plugins {
+                grpc {}
+            }
+        }
+    }
+}
+
+sourceSets {
+    main {
+        proto {
+            // контракт берём напрямую из submodule, не дублируем
+            srcDir 'api-schema/proto'
+            // компилируем только то, что нужно file-сервису
+            include 'file/v1/**'
+            include 'models/file/v1/**'
+            include 'models/common/v1/**'
+        }
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

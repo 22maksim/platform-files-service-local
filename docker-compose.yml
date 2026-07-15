@@ -1,0 +1,38 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: files-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # web console
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # одноразовый init: создаёт бакет 'files'
+  createbuckets:
+    image: minio/mc:latest
+    container_name: files-minio-init
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until (/usr/bin/mc alias set local http://minio:9000 minioadmin minioadmin) do echo 'waiting for minio...'; sleep 2; done;
+      /usr/bin/mc mb -p local/files || true;
+      echo 'bucket ready';
+      exit 0;
+      "
+
+# Postgres запущен локально (localhost:5432, postgres/postgres) — в compose не поднимаем.
+# Kafka пока не используется (нечего публиковать) — убрана.
+
+volumes:
+  minio-data:

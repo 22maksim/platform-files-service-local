@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: file-service-local
+  datasource:
+    # локальный postgres (всегда запущен); при необходимости поменяй имя БД
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+  jpa:
+    hibernate:
+      ddl-auto: update        # локальный dev: схему создаёт Hibernate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
+grpc:
+  server:
+    port: 9090
+    reflection-service-enabled: true   # grpcurl работает без .proto
+
+storage:
+  endpoint: http://localhost:9000
+  region: us-east-1
+  access-key: minioadmin
+  secret-key: minioadmin
+  bucket: files
+  presign-ttl: 15m
+
+file:
+  min-chunk-size: 5MB
+  # registered products (см. api-schema/README.md §10). Пусто = разрешить любой.
+  allowed-products:
+    - platform
+    - mail
+    - chat
+    - whiteboard
+    - telephony
+    - store
+
+logging:
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} [requestId=%X{requestId:-}, product=%X{product:-}, userId=%X{userId:-}] - %msg%n"
+  level:
+    ru.localdev.fileservice: DEBUG
+    net.devh.boot.grpc: INFO
